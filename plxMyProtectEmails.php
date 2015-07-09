@@ -16,27 +16,24 @@ class plxMyProtectEmails extends plxPlugin {
 	 * @authors	Stephane F - Francis
 	 **/
 	public function __construct($default_lang) {
-
 		# Appel du constructeur de la classe plxPlugin (obligatoire)
 		parent::__construct($default_lang);
-
 		# si affichage des articles coté visiteurs: protection des emails contre le spam
 		if(!defined('PLX_ADMIN')) {
 			$this->addHook('plxMotorParseArticle', 'protectEmailsArticles');
 			$this->addHook('plxShowStaticContent', 'protectEmailsStatics');
+			$this->addHook('plxShowStaticInclude', 'plxShowEmailsStaticInclude');
 		}
-
 	}
 
 	/**
-	 * Méthode qui encode une chaine de caractères en hexadecimal
+	 * Méthode qui encode une chaine de caractères en hexadécimal
 	 *
 	 * @parm	s		chaine de caractères à encoder
-	 * @return	string	chaine de caractères encodée en hexadecimal
+	 * @return	string	chaine de caractères encodée en hexadécimal
 	 * @author	Stephane F
 	 **/
 	public static function encodeBin2Hex($s) {
-
 		$encode = '';
 		for ($i = 0; $i < strlen($s); $i++) {
 			$encode .= '%' . bin2hex($s[$i]);
@@ -78,12 +75,10 @@ class plxMyProtectEmails extends plxPlugin {
 	 * @author	Stephane F
 	 **/
 	public function protectEmailsArticles() {
-
 		echo '<?php
 			$art["chapo"] = plxMyProtectEmails::protectEmails($art["chapo"]);
 			$art["content"] = plxMyProtectEmails::protectEmails($art["content"]);
 		?>';
-
 	}
 
 	/**
@@ -93,11 +88,27 @@ class plxMyProtectEmails extends plxPlugin {
 	 * @author	Stephane F
 	 **/
 	public function protectEmailsStatics() {
-
 		echo '<?php
 			$output = plxMyProtectEmails::protectEmails($output);
 		?>';
+	}
 
+	/**
+	 * Méthode qui protège les adresses emails à partir de la méthode plxShow::staticInclude()
+	 *
+	 * @return	stdio
+	 * @author	Stephane F
+	 **/
+	public function plxShowEmailsStaticInclude() {
+		echo '<?php
+			$plxGlob_stats = plxGlob::getInstance(PLX_ROOT.$this->plxMotor->aConf["racine_statiques"]);
+			if($files = $plxGlob_stats->query("/^".str_pad($id,3,"0",STR_PAD_LEFT).".[a-z0-9-]+.php$/")) {
+				ob_start();
+				include(PLX_ROOT.$this->plxMotor->aConf["racine_statiques"].$files[0]);
+				echo plxMyProtectEmails::protectEmails(ob_get_clean());
+			}
+			return true;
+		?>';
 	}
 
 }
